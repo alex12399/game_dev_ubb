@@ -1,0 +1,21 @@
+{
+    "env": {
+        "node": true,
+        "commonjs": true,
+        "es2021": true
+    },
+    "extends": [
+        "prettier",
+        "airbnb-base"
+    ],
+    "plugins": [
+        "prettier"
+    ],
+    "parserOptions": {
+        "ecmaVersion": 12
+    },
+    "rules": {
+        "indent": ["error", 4],
+        "prettier/prettier": ["error",  {"singleQuote": true, "parser": "flow", "semi": true, "tabWidth": 4, "endOfLine": "<auto>"}]
+    }
+}
