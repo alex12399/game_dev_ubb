@@ -1,8 +1,7 @@
 {
     "env": {
-        "node": true,
-        "commonjs": true,
-        "es2021": true
+        "es2021": true,
+        "node": true
     },
     "extends": [
         "prettier",
@@ -12,10 +11,11 @@
         "prettier"
     ],
     "parserOptions": {
-        "ecmaVersion": 12
+        "ecmaVersion": 12,
+        "sourceType": "module"
     },
     "rules": {
-        "indent": ["error", 4],
-        "prettier/prettier": ["error",  {"singleQuote": true, "parser": "flow", "semi": true, "tabWidth": 4, "endOfLine": "<auto>"}]
+        "linebreak-style": ["error", "windows"],
+        "indent": ["error", 4]
     }
 }
