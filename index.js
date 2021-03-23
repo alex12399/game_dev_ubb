@@ -1,8 +1,9 @@
 import express from 'express';
 import http from 'http';
+import io from 'socket.io';
 
 const app = express();
-const server = http.createServer(app);
+const server = http.Server(app);
 
 app.get('/', (req, res) => {
     res.sendFile(`${__dirname}/client/index.html`);
@@ -11,4 +12,143 @@ app.get('/', (req, res) => {
 app.use('/client', express.static(`${__dirname}/client`));
 
 server.listen(2000);
+// eslint-disable-next-line no-console
 console.log('Server started!');
+
+const socketio = io(server, {});
+const SOCKET_LIST = [];
+
+const Entity = () => {
+    const self = {
+        x: 250,
+        y: 250,
+        spdX: 0,
+        spdY: 0,
+        id: '',
+    };
+    self.update = () => {
+        self.updatePosition();
+    };
+    self.updatePosition = () => {
+        self.x += self.spdX;
+        self.y += self.spdY;
+    };
+    return self;
+};
+
+const Player = (playerId) => {
+    const self = Entity();
+    self.id = playerId;
+    self.number = Math.floor(10 * Math.random());
+    self.pressingRight = false;
+    self.pressingLeft = false;
+    self.pressingUp = false;
+    self.pressingDown = false;
+    self.maxSpd = 10;
+
+    const superUpdate = self.update;
+    self.update = () => {
+        self.updateSpd();
+        superUpdate();
+    };
+
+    self.updateSpd = () => {
+        if (self.pressingRight) self.spdX = self.maxSpd;
+        else if (self.pressingLeft) self.spdX = -self.maxSpd;
+        else self.spdX = 0;
+
+        if (self.pressingUp) self.spdY = -self.maxSpd;
+        else if (self.pressingDown) self.spdY = self.maxSpd;
+        else self.spdY = 0;
+    };
+    Player.list.push(self);
+    return self;
+};
+Player.list = [];
+Player.onConnect = (socket) => {
+    const player = Player(socket.id);
+
+    socket.on('keyPress', async (data) => {
+        if (data.inputId === 'left') player.pressingLeft = data.state;
+        else if (data.inputId === 'right') player.pressingRight = data.state;
+        else if (data.inputId === 'up') player.pressingUp = data.state;
+        else if (data.inputId === 'down') player.pressingDown = data.state;
+    });
+};
+Player.onDisconnect = (socket) => {
+    Player.list.forEach(async (player) => {
+        if (player.id === socket.id) {
+            delete Player.list[Player.list.indexOf(player)];
+        }
+    });
+};
+Player.update = () => {
+    const pack = [];
+    Player.list.forEach(async (player) => {
+        player.update();
+        pack.push({
+            x: player.x,
+            y: player.y,
+            number: player.number,
+        });
+    });
+    return pack;
+};
+
+const Bullet = (angle) => {
+    const self = Entity();
+    self.id = Math.random();
+    self.spdX = Math.cos((angle / 180) * Math.PI) * 10;
+    self.spdY = Math.sin((angle / 180) * Math.PI) * 10;
+    self.timer = 0;
+    self.toRemove = false;
+
+    const superUpdate = self.update;
+    self.update = () => {
+        if (self.timer > 50) {
+            delete Bullet.list[Bullet.list.indexOf(self)];
+        }
+        self.timer += 1;
+        superUpdate();
+    };
+    Bullet.list.push(self);
+    return self;
+};
+Bullet.list = [];
+Bullet.update = () => {
+    if (Math.random() < 0.01) {
+        Bullet(Math.random() * 360);
+    }
+
+    const pack = [];
+    Bullet.list.forEach(async (bullet) => {
+        bullet.update();
+        pack.push({
+            x: bullet.x,
+            y: bullet.y,
+        });
+    });
+    return pack;
+};
+
+socketio.sockets.on('connection', async (socket) => {
+    socket.id = Math.random();
+    SOCKET_LIST.push(socket);
+    Player.onConnect(socket);
+
+    socket.on('disconnect', async () => {
+        delete SOCKET_LIST[SOCKET_LIST.indexOf(socket)];
+        Player.onDisconnect(socket);
+    });
+});
+
+setInterval(async () => {
+    const pack = {
+        players: Player.update(),
+        bullets: Bullet.update(),
+    };
+
+    SOCKET_LIST.forEach(async (socket) => {
+        socket.emit('newPositions', pack);
+    });
+}, 1000 / 25);
