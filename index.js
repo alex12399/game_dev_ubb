@@ -33,7 +33,48 @@ const Entity = () => {
         self.x += self.spdX;
         self.y += self.spdY;
     };
+    self.getDistance = (point) => Math.sqrt((self.x - point.x) ** 2 + (self.y - point.y) ** 2);
+
     return self;
+};
+
+const Bullet = (parent, angle) => {
+    const self = Entity();
+    self.id = Math.random();
+    self.spdX = Math.cos((angle / 180) * Math.PI) * 10;
+    self.spdY = Math.sin((angle / 180) * Math.PI) * 10;
+    self.timer = 0;
+    self.parent = parent;
+
+    const superUpdate = self.update;
+    self.update = () => {
+        if (self.timer > 50) {
+            delete Bullet.list[Bullet.list.indexOf(self)];
+        }
+        self.timer += 1;
+        superUpdate();
+
+        // eslint-disable-next-line no-use-before-define
+        Player.list.forEach((player) => {
+            if (self.getDistance(player) < 32 && self.parent !== player.id) {
+                delete Bullet.list[Bullet.list.indexOf(self)];
+            }
+        });
+    };
+    Bullet.list.push(self);
+    return self;
+};
+Bullet.list = [];
+Bullet.update = () => {
+    const pack = [];
+    Bullet.list.forEach(async (bullet) => {
+        bullet.update();
+        pack.push({
+            x: bullet.x,
+            y: bullet.y,
+        });
+    });
+    return pack;
 };
 
 const Player = (playerId) => {
@@ -44,12 +85,24 @@ const Player = (playerId) => {
     self.pressingLeft = false;
     self.pressingUp = false;
     self.pressingDown = false;
+    self.pressingAttack = false;
+    self.mouseAngle = 0;
     self.maxSpd = 10;
 
     const superUpdate = self.update;
     self.update = () => {
         self.updateSpd();
         superUpdate();
+
+        if (self.pressingAttack) {
+            self.shootBullet(self.mouseAngle);
+        }
+    };
+
+    self.shootBullet = (angle) => {
+        const bullet = Bullet(self.id, angle);
+        bullet.x = self.x;
+        bullet.y = self.y;
     };
 
     self.updateSpd = () => {
@@ -73,6 +126,8 @@ Player.onConnect = (socket) => {
         else if (data.inputId === 'right') player.pressingRight = data.state;
         else if (data.inputId === 'up') player.pressingUp = data.state;
         else if (data.inputId === 'down') player.pressingDown = data.state;
+        else if (data.inputId === 'attack') player.pressingAttack = data.state;
+        else if (data.inputId === 'mouseAngle') player.mouseAngle = data.state;
     });
 };
 Player.onDisconnect = (socket) => {
@@ -95,42 +150,6 @@ Player.update = () => {
     return pack;
 };
 
-const Bullet = (angle) => {
-    const self = Entity();
-    self.id = Math.random();
-    self.spdX = Math.cos((angle / 180) * Math.PI) * 10;
-    self.spdY = Math.sin((angle / 180) * Math.PI) * 10;
-    self.timer = 0;
-    self.toRemove = false;
-
-    const superUpdate = self.update;
-    self.update = () => {
-        if (self.timer > 50) {
-            delete Bullet.list[Bullet.list.indexOf(self)];
-        }
-        self.timer += 1;
-        superUpdate();
-    };
-    Bullet.list.push(self);
-    return self;
-};
-Bullet.list = [];
-Bullet.update = () => {
-    if (Math.random() < 0.01) {
-        Bullet(Math.random() * 360);
-    }
-
-    const pack = [];
-    Bullet.list.forEach(async (bullet) => {
-        bullet.update();
-        pack.push({
-            x: bullet.x,
-            y: bullet.y,
-        });
-    });
-    return pack;
-};
-
 socketio.sockets.on('connection', async (socket) => {
     socket.id = Math.random();
     SOCKET_LIST.push(socket);
@@ -139,6 +158,13 @@ socketio.sockets.on('connection', async (socket) => {
     socket.on('disconnect', async () => {
         delete SOCKET_LIST[SOCKET_LIST.indexOf(socket)];
         Player.onDisconnect(socket);
+    });
+
+    socket.on('sendMsgToServer', async (data) => {
+        const playerName = socket.id;
+        SOCKET_LIST.forEach(async (s) => {
+            s.emit('addToChat', `${playerName}: ${data}`);
+        });
     });
 });
 

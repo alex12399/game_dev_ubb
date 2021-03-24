@@ -1,7 +1,17 @@
 <canvas id='ctx', width='500', height='500' style='border:1px solid #000000'></canvas>
 
+<div id='chat-text' style='width:500px; height:100px; overflow-y:scroll'>
+    <div>Hello!</div>
+</div>
+<form id='chat-form'>
+    <input id='chat-input' type='text' style='width:500px'></input>
+</form>
+
 <script src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js'></script>
 <script>
+    const chatText = document.getElementById('chat-text');
+    const chatInput = document.getElementById('chat-input');
+    const chatForm = document.getElementById('chat-form');
     const ctx = document.getElementById('ctx').getContext('2d');
     ctx.font='30px Arial';
 
@@ -15,8 +25,17 @@
         data.bullets.forEach(async (bullet) => {
             ctx.fillRect(bullet.x - 5, bullet.y - 5, 10, 10);  
         });
-        console.log(data.bullet);
-    })
+    });
+
+    socket.on('addToChat', async (data) => {
+        chatText.innerHTML += '<div>' + data + '</div>';
+    });
+
+    chatForm.onsubmit = async (e) => {
+        e.preventDefault();
+        socket.emit('sendMsgToServer', chatInput.value);
+        chatInput.value = '';
+    }
 
     document.onkeydown = async (event) => {
         //d
@@ -27,7 +46,7 @@
         if(event.keyCode === 65) socket.emit('keyPress', {inputId: 'left', state: true});
         //w
         if(event.keyCode === 87) socket.emit('keyPress', {inputId: 'up', state: true});        
-    }
+    };
 
     document.onkeyup = async (event) => {
         //d
@@ -38,5 +57,20 @@
         if(event.keyCode === 65) socket.emit('keyPress', {inputId: 'left', state: false});
         //w
         if(event.keyCode === 87) socket.emit('keyPress', {inputId: 'up', state: false});        
+    };
+
+    document.onmousedown = async (event) => {
+        socket.emit('keyPress', {inputId: 'attack', state: true});
+    }
+
+    document.onmouseup = async (event) => {
+        socket.emit('keyPress', {inputId: 'attack', state: false});
+    }
+
+    document.onmousemove = async (event) => {
+        const x = -250 + event.clientX - 8;
+        const y = -250 + event.clientY - 8;
+        const angle = Math.atan2(y, x) / Math.PI * 180;
+        socket.emit('keyPress', {inputId: 'mouseAngle', state: angle});
     }
 </script>
