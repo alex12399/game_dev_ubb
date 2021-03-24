@@ -1,21 +1,61 @@
-<canvas id='ctx', width='500', height='500' style='border:1px solid #000000'></canvas>
-
-<div id='chat-text' style='width:500px; height:100px; overflow-y:scroll'>
-    <div>Hello!</div>
+<div id='signDiv'>
+    Username: <input id='signDiv-username' type='text'></input><br>
+    Password: <input id='signDiv-password' type='password'></input>
+    <button id='signDiv-signIn'>Sign In</button>
+    <button id='signDiv-signUp'>Sign Up</button>
 </div>
-<form id='chat-form'>
-    <input id='chat-input' type='text' style='width:500px'></input>
-</form>
+
+<div id='gameDiv' style='display:none'>
+    <canvas id='ctx', width='500', height='500' style='border:1px solid #000000'></canvas>
+
+    <div id='chat-text' style='width:500px; height:100px; overflow-y:scroll'>
+        <div>Hello!</div>
+    </div>
+    <form id='chat-form'>
+        <input id='chat-input' type='text' style='width:500px'></input>
+    </form>
+</div>
 
 <script src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js'></script>
 <script>
+    const socket = io();
+
+    //sign
+    const signDiv = document.getElementById('signDiv');
+    const gameDiv = document.getElementById('gameDiv');
+    const signDivUsername = document.getElementById('signDiv-username');
+    const signDivPassword = document.getElementById('signDiv-password');
+    const signDivSignIn = document.getElementById('signDiv-signIn');
+    const signDivSignUp = document.getElementById('signDiv-signUp');
+
+    signDivSignIn.onclick = async () => {
+        socket.emit('signIn', {username: signDivUsername.value, password: signDivPassword.value});
+    }
+
+    signDivSignUp.onclick = async () => {
+        socket.emit('signUp', {username: signDivUsername.value, password: signDivPassword.value});
+    }
+
+    socket.on('signInResponse', async (data) => {
+        if (data.success) {
+            signDiv.style.display = 'none';
+            gameDiv.style.display = 'inline-block';
+        } else {
+            alert('Sign in unsuccessful');
+        }
+    })
+
+    socket.on('signUpResponse', async (data) => {
+        if (data.success) alert('Sign up successful');
+        else alert('Sign up unsuccessful');
+    })
+
+    //game
     const chatText = document.getElementById('chat-text');
     const chatInput = document.getElementById('chat-input');
     const chatForm = document.getElementById('chat-form');
     const ctx = document.getElementById('ctx').getContext('2d');
     ctx.font='30px Arial';
-
-    const socket = io();
 
     socket.on('newPositions', async (data) => {
         ctx.clearRect(0, 0, 500, 500);

@@ -150,10 +150,56 @@ Player.update = () => {
     return pack;
 };
 
+const USERS = [
+    { username: 'aaa', password: '123' },
+    { username: 'bbb', password: '456' },
+    { username: 'ccc', password: '789' },
+];
+
+const isValidPassword = async (data, cb) => {
+    setTimeout(async () => {
+        await cb(USERS.find((user) => user.username === data.username && user.password === data.password));
+    }, 10);
+};
+
+const isUsernameTaken = async (data, cb) => {
+    setTimeout(async () => {
+        await cb(USERS.find((user) => user.username === data.username));
+    }, 10);
+};
+
+const addUser = async (data, cb) => {
+    setTimeout(async () => {
+        await cb(USERS.push({ username: data.username, password: data.password }));
+    }, 10);
+};
+
 socketio.sockets.on('connection', async (socket) => {
     socket.id = Math.random();
     SOCKET_LIST.push(socket);
-    Player.onConnect(socket);
+
+    socket.on('signIn', async (data) => {
+        await isValidPassword(data, async (res) => {
+            if (res) {
+                Player.onConnect(socket);
+                socket.emit('signInResponse', { success: true });
+            } else {
+                socket.emit('signInResponse', { success: false });
+            }
+        });
+    });
+
+    socket.on('signUp', async (data) => {
+        await isUsernameTaken(data, async (res) => {
+            if (res) {
+                socket.emit('signUpResponse', { success: true });
+            } else {
+                await addUser(data, async () => {
+                    socket.emit('signUpResponse', { success: true });
+                });
+            }
+        });
+    });
 
     socket.on('disconnect', async () => {
         delete SOCKET_LIST[SOCKET_LIST.indexOf(socket)];
