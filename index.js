@@ -1,6 +1,9 @@
 import express from 'express';
 import http from 'http';
 import io from 'socket.io';
+import mongojs from 'mongojs';
+
+const db = mongojs('localhost:27017/myGame', ['account', 'progress']);
 
 const app = express();
 const server = http.Server(app);
@@ -150,28 +153,24 @@ Player.update = () => {
     return pack;
 };
 
-const USERS = [
-    { username: 'aaa', password: '123' },
-    { username: 'bbb', password: '456' },
-    { username: 'ccc', password: '789' },
-];
-
 const isValidPassword = async (data, cb) => {
-    setTimeout(async () => {
-        await cb(USERS.find((user) => user.username === data.username && user.password === data.password));
-    }, 10);
+    await db.account.find({ username: data.username, password: data.password }, async (err, res) => {
+        if (res.length > 0) await cb(true);
+        else await cb(false);
+    });
 };
 
 const isUsernameTaken = async (data, cb) => {
-    setTimeout(async () => {
-        await cb(USERS.find((user) => user.username === data.username));
-    }, 10);
+    await db.account.find({ username: data.username }, async (err, res) => {
+        if (res.length > 0) await cb(true);
+        else await cb(false);
+    });
 };
 
 const addUser = async (data, cb) => {
-    setTimeout(async () => {
-        await cb(USERS.push({ username: data.username, password: data.password }));
-    }, 10);
+    await db.account.insert({ username: data.username, password: data.password }, async () => {
+        await cb();
+    });
 };
 
 socketio.sockets.on('connection', async (socket) => {
