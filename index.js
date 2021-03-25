@@ -21,6 +21,9 @@ console.log('Server started!');
 const socketio = io(server, {});
 const SOCKET_LIST = [];
 
+const initPack = { players: [], bullets: [] };
+const removePack = { players: [], bullets: [] };
+
 const Entity = () => {
     const self = {
         x: 250,
@@ -61,10 +64,16 @@ const Bullet = (parent, angle) => {
         Player.list.forEach((player) => {
             if (self.getDistance(player) < 32 && self.parent !== player.id) {
                 delete Bullet.list[Bullet.list.indexOf(self)];
+                removePack.bullets.push(self);
             }
         });
     };
     Bullet.list.push(self);
+    initPack.bullets.push({
+        id: self.id,
+        x: self.x,
+        y: self.y,
+    });
     return self;
 };
 Bullet.list = [];
@@ -73,6 +82,7 @@ Bullet.update = () => {
     Bullet.list.forEach(async (bullet) => {
         bullet.update();
         pack.push({
+            id: bullet.id,
             x: bullet.x,
             y: bullet.y,
         });
@@ -118,6 +128,13 @@ const Player = (playerId) => {
         else self.spdY = 0;
     };
     Player.list.push(self);
+
+    initPack.players.push({
+        id: self.id,
+        x: self.x,
+        y: self.y,
+        number: self.number,
+    });
     return self;
 };
 Player.list = [];
@@ -137,6 +154,7 @@ Player.onDisconnect = (socket) => {
     Player.list.forEach(async (player) => {
         if (player.id === socket.id) {
             delete Player.list[Player.list.indexOf(player)];
+            removePack.players.push(player);
         }
     });
 };
@@ -145,9 +163,9 @@ Player.update = () => {
     Player.list.forEach(async (player) => {
         player.update();
         pack.push({
+            id: player.id,
             x: player.x,
             y: player.y,
-            number: player.number,
         });
     });
     return pack;
@@ -191,7 +209,7 @@ socketio.sockets.on('connection', async (socket) => {
     socket.on('signUp', async (data) => {
         await isUsernameTaken(data, async (res) => {
             if (res) {
-                socket.emit('signUpResponse', { success: true });
+                socket.emit('signUpResponse', { success: false });
             } else {
                 await addUser(data, async () => {
                     socket.emit('signUpResponse', { success: true });
@@ -220,6 +238,13 @@ setInterval(async () => {
     };
 
     SOCKET_LIST.forEach(async (socket) => {
-        socket.emit('newPositions', pack);
+        socket.emit('init', initPack);
+        socket.emit('update', pack);
+        socket.emit('remove', removePack);
     });
+
+    initPack.players = [];
+    initPack.bullets = [];
+    removePack.players = [];
+    removePack.bullets = [];
 }, 1000 / 25);
