@@ -57,15 +57,79 @@
     const ctx = document.getElementById('ctx').getContext('2d');
     ctx.font='30px Arial';
 
-    socket.on('newPositions', async (data) => {
-        ctx.clearRect(0, 0, 500, 500);
+    const Player = function (initPack) {
+        const self = {};
+        self.id = initPack.id;
+        self.number = initPack.number;
+        self.x = initPack.x;
+        self.y = initPack.y;
+        Player.list.push(self);
+        return self;
+    };
+    Player.list = [];
+
+    const Bullet = function (initPack) {
+        const self = {};
+        self.id = initPack.id;
+        self.number = initPack.number;
+        self.x = initPack.x;
+        self.y = initPack.y;
+        Bullet.list.push(self);
+        return self;
+    };
+    Bullet.list = [];
+
+    socket.on('init', async (data) => {
         data.players.forEach(async (player) => {
-            ctx.fillText(player.number, player.x, player.y);  
+            new Player(player);
         });
         data.bullets.forEach(async (bullet) => {
-            ctx.fillRect(bullet.x - 5, bullet.y - 5, 10, 10);  
+            new Bullet(bullet);
         });
     });
+
+    socket.on('update', async (data) => {
+        data.players.forEach(async (player) => {
+            const pack = player;
+            const p = Player.list[Player.list.findIndex((foundPlayer) => foundPlayer.id === pack.id)];
+            if (p) {
+                if (pack.x !== undefined) p.x = pack.x;
+                if (pack.y !== undefined) p.y = pack.y;
+            }
+        });
+        data.bullets.forEach(async (bullet) => {
+            const pack = bullet;
+            const b = Bullet.list[Bullet.list.findIndex((foundBullet) => foundBullet.id === pack.id)];
+            if (b) {
+                if (pack.x !== undefined) b.x = pack.x;
+                if (pack.y !== undefined) b.y = pack.y;
+            }
+        });
+    });
+
+    socket.on('remove', async (data) => {
+        data.players.forEach(async (player) => {
+            const testArrPlayer = Player.list.filter((p) => p.id === player.id);
+            delete Player.list[Player.list.indexOf(testArrPlayer[0])];
+        });
+        Player.list = Player.list.filter(Boolean);
+        
+        data.bullets.forEach(async (bullet) => {
+            const testArrBullet = Bullet.list.filter((b) => b.id === bullet.id);
+            delete Bullet.list[Bullet.list.indexOf(testArrBullet[0])];
+        });
+        Bullet.list = Bullet.list.filter(Boolean);
+    });
+
+    setInterval(async () => {
+        ctx.clearRect(0, 0, 500, 500);
+        Player.list.forEach(async (player) => {
+            ctx.fillText(player.number, player.x, player.y);  
+        });
+        Bullet.list.forEach(async (bullet) => {
+            ctx.fillRect(bullet.x - 5, bullet.y - 5, 10, 10);  
+        });
+    }, 40);
 
     socket.on('addToChat', async (data) => {
         chatText.innerHTML += '<div>' + data + '</div>';
