@@ -199,6 +199,7 @@ Player.onConnect = (socket) => {
     socket.emit('init', {
         players,
         bullets: Bullet.getAllinitPack(),
+        selfId: socket.id,
     });
 };
 Player.onDisconnect = (socket) => {
@@ -208,6 +209,7 @@ Player.onDisconnect = (socket) => {
             removePack.players.push(player);
         }
     });
+    Player.list = Player.list.filter(Boolean);
 };
 Player.update = () => {
     const pack = [];

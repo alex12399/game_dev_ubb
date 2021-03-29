@@ -57,6 +57,14 @@
     const ctx = document.getElementById('ctx').getContext('2d');
     ctx.font='30px Arial';
 
+    const Img = {};
+    Img.player = new Image();
+    Img.player.src = '/client/img/player.png';
+    Img.bullet = new Image();
+    Img.bullet.src = 'client/img/bullet.png';
+    Img.map = new Image();
+    Img.map.src = '/client/img/map.png';
+
     const Player = function (initPack) {
         const self = {};
         self.id = initPack.id;
@@ -69,9 +77,14 @@
 
         self.draw = function () {
             const hpWidth = 30 * self.hp / self.hpMax;
+            ctx.fillStyle = 'red';
             ctx.fillRect(self.x - hpWidth / 2, self.y - 40, hpWidth, 4);
-            ctx.fillText(self.number, self.x, self.y);
-            ctx.fillText(self.score, self.x, self.y - 60);
+            
+            const width = Img.player.width * 2;
+            const height = Img.player.height * 2;
+            ctx.drawImage(Img.player, 0, 0, Img.player.width, Img.player.height, self.x - width / 2, self.y - height / 2, width, height);
+
+            // ctx.fillText(self.score, self.x, self.y - 60);
         }
 
         Player.list.push(self);
@@ -87,7 +100,9 @@
         self.y = initPack.y;
 
         self.draw = function () {
-            ctx.fillRect(self.x - 5, self.y - 5, 10, 10);  
+            const width = Img.bullet.width / 2;
+            const height = Img.bullet.height / 2;
+            ctx.drawImage(Img.bullet, 0, 0, Img.bullet.width, Img.bullet.height, self.x - width /2, self.y - height / 2, width, height);  
         }
 
         Bullet.list.push(self);
@@ -95,7 +110,10 @@
     };
     Bullet.list = [];
 
+    let selfId = null;
+
     socket.on('init', async (data) => {
+        if (data.selfId) selfId = data.selfId;
         data.players.forEach(async (player) => {
             new Player(player);
         });
@@ -141,6 +159,8 @@
 
     setInterval(async () => {
         ctx.clearRect(0, 0, 500, 500);
+        drawMap();
+        drawScore();
         Player.list.forEach(async (player) => {
             player.draw();
         });
@@ -148,6 +168,15 @@
             bullet.draw();
         });
     }, 40);
+
+    const drawMap = () => {
+        ctx.drawImage(Img.map, 0, 0);
+    }
+
+    const drawScore = () => {
+		ctx.fillStyle = 'white';
+		ctx.fillText(Player.list.find((player) => player.id === selfId).score, 0, 30);
+    }
 
     socket.on('addToChat', async (data) => {
         chatText.innerHTML += '<div>' + data + '</div>';
