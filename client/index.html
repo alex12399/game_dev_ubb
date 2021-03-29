@@ -63,6 +63,17 @@
         self.number = initPack.number;
         self.x = initPack.x;
         self.y = initPack.y;
+        self.hp = initPack.hp;
+        self.hpMax = initPack.hpMax;
+        self.score = initPack.score;
+
+        self.draw = function () {
+            const hpWidth = 30 * self.hp / self.hpMax;
+            ctx.fillRect(self.x - hpWidth / 2, self.y - 40, hpWidth, 4);
+            ctx.fillText(self.number, self.x, self.y);
+            ctx.fillText(self.score, self.x, self.y - 60);
+        }
+
         Player.list.push(self);
         return self;
     };
@@ -74,6 +85,11 @@
         self.number = initPack.number;
         self.x = initPack.x;
         self.y = initPack.y;
+
+        self.draw = function () {
+            ctx.fillRect(self.x - 5, self.y - 5, 10, 10);  
+        }
+
         Bullet.list.push(self);
         return self;
     };
@@ -95,6 +111,8 @@
             if (p) {
                 if (pack.x !== undefined) p.x = pack.x;
                 if (pack.y !== undefined) p.y = pack.y;
+                if (pack.hp !== undefined) p.hp = pack.hp;
+                if (pack.score !== undefined) p.score = pack.score;
             }
         });
         data.bullets.forEach(async (bullet) => {
@@ -124,10 +142,10 @@
     setInterval(async () => {
         ctx.clearRect(0, 0, 500, 500);
         Player.list.forEach(async (player) => {
-            ctx.fillText(player.number, player.x, player.y);  
+            player.draw();
         });
         Bullet.list.forEach(async (bullet) => {
-            ctx.fillRect(bullet.x - 5, bullet.y - 5, 10, 10);  
+            bullet.draw();
         });
     }, 40);
 

@@ -65,18 +65,37 @@ const Bullet = (parent, angle) => {
         // eslint-disable-next-line no-use-before-define
         Player.list.forEach((player) => {
             if (self.getDistance(player) < 32 && self.parent !== player.id) {
+                player.hp -= 1;
+                if (player.hp <= 0) {
+                    // eslint-disable-next-line no-use-before-define
+                    const shooter = Player.list.find((p) => p.id === self.parent);
+                    if (shooter) shooter.score += 1;
+                    player.hp = player.hpMax;
+                    player.x = Math.random() * 500;
+                    player.y = Math.random() * 500;
+                }
                 delete Bullet.list[Bullet.list.indexOf(self)];
                 removePack.bullets.push(self);
             }
             Bullet.list = Bullet.list.filter(Boolean);
         });
     };
-    Bullet.list.push(self);
-    initPack.bullets.push({
+
+    self.getInitPack = () => ({
         id: self.id,
         x: self.x,
         y: self.y,
     });
+
+    self.getUpdatePack = () => ({
+        id: self.id,
+        x: self.x,
+        y: self.y,
+    });
+
+    Bullet.list.push(self);
+    initPack.bullets.push(self.getInitPack());
+
     return self;
 };
 Bullet.list = [];
@@ -84,13 +103,16 @@ Bullet.update = () => {
     const pack = [];
     Bullet.list.forEach(async (bullet) => {
         bullet.update();
-        pack.push({
-            id: bullet.id,
-            x: bullet.x,
-            y: bullet.y,
-        });
+        pack.push(bullet.getUpdatePack());
     });
     return pack;
+};
+Bullet.getAllinitPack = () => {
+    const bullets = [];
+    Bullet.list.forEach((bullet) => {
+        bullets.push(bullet.getInitPack());
+    });
+    return bullets;
 };
 
 const Player = (playerId) => {
@@ -104,6 +126,9 @@ const Player = (playerId) => {
     self.pressingAttack = false;
     self.mouseAngle = 0;
     self.maxSpd = 10;
+    self.hp = 10;
+    self.hpMax = 10;
+    self.score = 0;
 
     const superUpdate = self.update;
     self.update = () => {
@@ -132,12 +157,25 @@ const Player = (playerId) => {
     };
     Player.list.push(self);
 
-    initPack.players.push({
+    self.getInitPack = () => ({
         id: self.id,
         x: self.x,
         y: self.y,
         number: self.number,
+        hp: self.hp,
+        hpMax: self.hpMax,
+        score: self.score,
     });
+
+    self.getUpdatePack = () => ({
+        id: self.id,
+        x: self.x,
+        y: self.y,
+        hp: self.hp,
+        score: self.score,
+    });
+
+    initPack.players.push(self.getInitPack());
     return self;
 };
 Player.list = [];
@@ -152,6 +190,16 @@ Player.onConnect = (socket) => {
         else if (data.inputId === 'attack') player.pressingAttack = data.state;
         else if (data.inputId === 'mouseAngle') player.mouseAngle = data.state;
     });
+
+    const players = [];
+    Player.list.forEach((p) => {
+        if (p.id !== player.id) players.push(p.getInitPack());
+    });
+
+    socket.emit('init', {
+        players,
+        bullets: Bullet.getAllinitPack(),
+    });
 };
 Player.onDisconnect = (socket) => {
     Player.list.forEach(async (player) => {
@@ -165,11 +213,7 @@ Player.update = () => {
     const pack = [];
     Player.list.forEach(async (player) => {
         player.update();
-        pack.push({
-            id: player.id,
-            x: player.x,
-            y: player.y,
-        });
+        pack.push(player.getUpdatePack());
     });
     return pack;
 };
