@@ -1,9 +1,9 @@
 import express from 'express';
 import http from 'http';
 import io from 'socket.io';
-import mongojs from 'mongojs';
+// import mongojs from 'mongojs';
 
-const db = mongojs('localhost:27017/myGame', ['account', 'progress']);
+// const db = mongojs('localhost:27017/myGame', ['account', 'progress']);
 
 const app = express();
 const server = http.Server(app);
@@ -14,7 +14,7 @@ app.get('/', (req, res) => {
 
 app.use('/client', express.static(`${__dirname}/client`));
 
-server.listen(2000);
+server.listen(process.env.PORT || 2000);
 // eslint-disable-next-line no-console
 console.log('Server started!');
 
@@ -221,23 +221,26 @@ Player.update = () => {
 };
 
 const isValidPassword = async (data, cb) => {
-    await db.account.find({ username: data.username, password: data.password }, async (err, res) => {
-        if (res.length > 0) await cb(true);
-        else await cb(false);
-    });
+    return cb(true);
+    // await db.account.find({ username: data.username, password: data.password }, async (err, res) => {
+    //     if (res.length > 0) await cb(true);
+    //     else await cb(false);
+    // });
 };
 
 const isUsernameTaken = async (data, cb) => {
-    await db.account.find({ username: data.username }, async (err, res) => {
-        if (res.length > 0) await cb(true);
-        else await cb(false);
-    });
+    return cb(false);
+    // await db.account.find({ username: data.username }, async (err, res) => {
+    //     if (res.length > 0) await cb(true);
+    //     else await cb(false);
+    // });
 };
 
 const addUser = async (data, cb) => {
-    await db.account.insert({ username: data.username, password: data.password }, async () => {
-        await cb();
-    });
+    return cb();
+    // await db.account.insert({ username: data.username, password: data.password }, async () => {
+    //     await cb();
+    // });
 };
 
 socketio.sockets.on('connection', async (socket) => {
