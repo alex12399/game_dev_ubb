@@ -24,14 +24,21 @@ const SOCKET_LIST = [];
 const initPack = { players: [], bullets: [] };
 const removePack = { players: [], bullets: [] };
 
-const Entity = () => {
+const Entity = (param) => {
     const self = {
         x: 250,
         y: 250,
         spdX: 0,
         spdY: 0,
         id: '',
+        map: 'forest',
     };
+    if (param) {
+        if (param.x) self.x = param.x;
+        if (param.y) self.y = param.y;
+        if (param.map) self.map = param.map;
+        if (param.id) self.id = param.id;
+    }
     self.update = () => {
         self.updatePosition();
     };
@@ -44,13 +51,14 @@ const Entity = () => {
     return self;
 };
 
-const Bullet = (parent, angle) => {
-    const self = Entity();
+const Bullet = (param) => {
+    const self = Entity(param);
     self.id = Math.random();
-    self.spdX = Math.cos((angle / 180) * Math.PI) * 10;
-    self.spdY = Math.sin((angle / 180) * Math.PI) * 10;
+    self.spdX = Math.cos((param.angle / 180) * Math.PI) * 10;
+    self.spdY = Math.sin((param.angle / 180) * Math.PI) * 10;
     self.timer = 0;
-    self.parent = parent;
+    self.parent = param.parent;
+    self.angle = param.angle;
 
     const superUpdate = self.update;
     self.update = () => {
@@ -64,7 +72,7 @@ const Bullet = (parent, angle) => {
 
         // eslint-disable-next-line no-use-before-define
         Player.list.forEach((player) => {
-            if (self.getDistance(player) < 32 && self.parent !== player.id) {
+            if (self.map === player.map && self.getDistance(player) < 32 && self.parent !== player.id) {
                 player.hp -= 1;
                 if (player.hp <= 0) {
                     // eslint-disable-next-line no-use-before-define
@@ -85,6 +93,7 @@ const Bullet = (parent, angle) => {
         id: self.id,
         x: self.x,
         y: self.y,
+        map: self.map,
     });
 
     self.getUpdatePack = () => ({
@@ -115,9 +124,8 @@ Bullet.getAllinitPack = () => {
     return bullets;
 };
 
-const Player = (playerId) => {
-    const self = Entity();
-    self.id = playerId;
+const Player = (param) => {
+    const self = Entity(param);
     self.number = Math.floor(10 * Math.random());
     self.pressingRight = false;
     self.pressingLeft = false;
@@ -141,9 +149,13 @@ const Player = (playerId) => {
     };
 
     self.shootBullet = (angle) => {
-        const bullet = Bullet(self.id, angle);
-        bullet.x = self.x;
-        bullet.y = self.y;
+        Bullet({
+            parent: self.id,
+            angle,
+            x: self.x,
+            y: self.y,
+            map: self.map,
+        });
     };
 
     self.updateSpd = () => {
@@ -165,6 +177,7 @@ const Player = (playerId) => {
         hp: self.hp,
         hpMax: self.hpMax,
         score: self.score,
+        map: self.map,
     });
 
     self.getUpdatePack = () => ({
@@ -180,7 +193,9 @@ const Player = (playerId) => {
 };
 Player.list = [];
 Player.onConnect = (socket) => {
-    const player = Player(socket.id);
+    let map = 'forest';
+    if (Math.random() < 0.5) map = 'field';
+    const player = Player({ id: socket.id, map });
 
     socket.on('keyPress', async (data) => {
         if (data.inputId === 'left') player.pressingLeft = data.state;

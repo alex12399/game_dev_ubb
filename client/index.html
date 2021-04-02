@@ -65,8 +65,11 @@
     Img.player.src = '/client/img/player.png';
     Img.bullet = new Image();
     Img.bullet.src = 'client/img/bullet.png';
-    Img.map = new Image();
-    Img.map.src = '/client/img/map.png';
+    Img.map = {};
+    Img.map['forest'] = new Image();
+    Img.map['forest'].src = '/client/img/map.png';
+    Img.map['field'] = new Image();
+    Img.map['field'].src = '/client/img/map2.png';
 
     const Player = function (initPack) {
         const self = {};
@@ -77,8 +80,11 @@
         self.hp = initPack.hp;
         self.hpMax = initPack.hpMax;
         self.score = initPack.score;
+        self.map = initPack.map;
 
         self.draw = function () {
+            if (Player.list.find((player) => player.id === selfId).map !== self.map) return;
+
             const x = self.x - Player.list.find((player) => player.id === selfId).x + WIDTH / 2;
             const y = self.y - Player.list.find((player) => player.id === selfId).y + HEIGHT / 2;
 
@@ -104,8 +110,10 @@
         self.number = initPack.number;
         self.x = initPack.x;
         self.y = initPack.y;
+        self.map = initPack.map;
 
         self.draw = function () {
+            if (Player.list.find((player) => player.id === selfId).map !== self.map) return;
             const width = Img.bullet.width / 2;
             const height = Img.bullet.height / 2;
 
@@ -180,10 +188,12 @@
     }, 40);
 
     const drawMap = () => {
-        const x = WIDTH / 2 - Player.list.find((player) => player.id === selfId).x;
-        const y = HEIGHT / 2 - Player.list.find((player) => player.id === selfId).y;
+        const player = Player.list.find((player) => player.id === selfId);
 
-        ctx.drawImage(Img.map, x, y);
+        const x = WIDTH / 2 - player.x;
+        const y = HEIGHT / 2 - player.y;
+
+        ctx.drawImage(Img.map[player.map], x, y);
     }
 
     const drawScore = () => {
