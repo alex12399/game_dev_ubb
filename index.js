@@ -186,6 +186,7 @@ const Player = (param) => {
         y: self.y,
         hp: self.hp,
         score: self.score,
+        map: self.map,
     });
 
     initPack.players.push(self.getInitPack());
@@ -204,6 +205,11 @@ Player.onConnect = (socket) => {
         else if (data.inputId === 'down') player.pressingDown = data.state;
         else if (data.inputId === 'attack') player.pressingAttack = data.state;
         else if (data.inputId === 'mouseAngle') player.mouseAngle = data.state;
+    });
+
+    socket.on('changeMap', async () => {
+        if (player.map === 'field') player.map = 'forest';
+        else player.map = 'field';
     });
 
     const players = [];

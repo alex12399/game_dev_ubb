@@ -6,15 +6,23 @@
 </div>
 
 <div id='gameDiv' style='display:none'>
-    <canvas id='ctx', width='500', height='500' style='position:absolute; left:8px; top:8px; border:1px solid #000000'></canvas>
-    <canvas id='ctx-ui', width='500', height='500' style='position:absolute; left:8px; top:8px; border:1px solid #000000'></canvas>
-
-    <div id='chat-text' style='width:500px; height:100px; overflow-y:scroll; margin-top:500px'>
-        <div>Hello!</div>
+    <div id='game' style='position:absolute; width:500px; height:500px'>
+        <canvas id='ctx', width='500', height='500' style='position:absolute; border:1px solid #000000'></canvas>
+        <canvas id='ctx-ui', width='500', height='500' style='position:absolute; border:1px solid #000000'></canvas>
+        <div id='ui' style='position:absolute; width:500px; height:500px;'>
+            <button onclick='changeMap()' style='position:absolute; bottom:0px; left:0px'>
+                Change Map
+            </button>
+        </div>
     </div>
-    <form id='chat-form'>
-        <input id='chat-input' type='text' style='width:500px'></input>
-    </form>
+    <div id='belowGame' style='margin-top:520px'>
+        <div id='chat-text' style='width:500px; height:100px; overflow-y:scroll'>
+            <div>Hello!</div>
+        </div>
+        <form id='chat-form'>
+            <input id='chat-input' type='text' style='width:500px'></input>
+        </form>
+    </div>
 </div>
 
 <script src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js'></script>
@@ -53,6 +61,11 @@
         if (data.success) alert('Sign up successful');
         else alert('Sign up unsuccessful');
     })
+
+    //ui
+    const changeMap = () => {
+        socket.emit('changeMap');
+    }
 
     //game
     const chatText = document.getElementById('chat-text');
@@ -154,6 +167,7 @@
                 if (pack.y !== undefined) p.y = pack.y;
                 if (pack.hp !== undefined) p.hp = pack.hp;
                 if (pack.score !== undefined) p.score = pack.score;
+                if (pack.map !== undefined) p.map = pack.map;
             }
         });
         data.bullets.forEach(async (bullet) => {
