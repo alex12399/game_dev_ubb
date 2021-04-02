@@ -126,6 +126,7 @@ Bullet.getAllinitPack = () => {
 
 const Player = (param) => {
     const self = Entity(param);
+    self.username = param.username;
     self.number = Math.floor(10 * Math.random());
     self.pressingRight = false;
     self.pressingLeft = false;
@@ -193,10 +194,10 @@ const Player = (param) => {
     return self;
 };
 Player.list = [];
-Player.onConnect = (socket) => {
+Player.onConnect = (socket, username) => {
     let map = 'forest';
     if (Math.random() < 0.5) map = 'field';
-    const player = Player({ id: socket.id, map });
+    const player = Player({ username, id: socket.id, map });
 
     socket.on('keyPress', async (data) => {
         if (data.inputId === 'left') player.pressingLeft = data.state;
@@ -210,6 +211,28 @@ Player.onConnect = (socket) => {
     socket.on('changeMap', async () => {
         if (player.map === 'field') player.map = 'forest';
         else player.map = 'field';
+    });
+
+    socket.on('sendMsgToServer', async (data) => {
+        SOCKET_LIST.forEach(async (s) => {
+            s.emit('addToChat', `${player.username}: ${data}`);
+        });
+    });
+
+    socket.on('sendPmToServer', async (data) => {
+        let recipientSocket = null;
+        Player.list.forEach((p) => {
+            if (p.username === data.username) {
+                SOCKET_LIST.forEach((s) => {
+                    if (s.id === p.id) recipientSocket = s;
+                });
+            }
+        });
+        if (recipientSocket === null) socket.emit('addToChat', `The player ${data.username} was not found`);
+        else {
+            recipientSocket.emit('addToChat', `From ${player.username}: ${data.message}`);
+            socket.emit('addToChat', `To ${data.username}: ${data.message}`);
+        }
     });
 
     const players = [];
@@ -271,7 +294,7 @@ socketio.sockets.on('connection', async (socket) => {
     socket.on('signIn', async (data) => {
         await isValidPassword(data, async (res) => {
             if (res) {
-                Player.onConnect(socket);
+                Player.onConnect(socket, data.username);
                 socket.emit('signInResponse', { success: true });
             } else {
                 socket.emit('signInResponse', { success: false });
@@ -294,13 +317,6 @@ socketio.sockets.on('connection', async (socket) => {
     socket.on('disconnect', async () => {
         delete SOCKET_LIST[SOCKET_LIST.indexOf(socket)];
         Player.onDisconnect(socket);
-    });
-
-    socket.on('sendMsgToServer', async (data) => {
-        const playerName = socket.id;
-        SOCKET_LIST.forEach(async (s) => {
-            s.emit('addToChat', `${playerName}: ${data}`);
-        });
     });
 });
 

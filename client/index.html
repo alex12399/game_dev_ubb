@@ -232,7 +232,11 @@
 
     chatForm.onsubmit = async (e) => {
         e.preventDefault();
-        socket.emit('sendMsgToServer', chatInput.value);
+        if(chatInput.value[0] === '@') socket.emit('sendPmToServer', {
+            username: chatInput.value.slice(1, chatInput.value.indexOf(',')),
+            message: chatInput.value.slice(chatInput.value.indexOf(',') + 1)
+        });
+        else socket.emit('sendMsgToServer', chatInput.value);
         chatInput.value = '';
     }
 
@@ -271,5 +275,9 @@
         const y = -250 + event.clientY - 8;
         const angle = Math.atan2(y, x) / Math.PI * 180;
         socket.emit('keyPress', {inputId: 'mouseAngle', state: angle});
+    }
+
+    document.oncontextmenu = async (event) => {
+        event.preventDefault();
     }
 </script>
