@@ -83,10 +83,12 @@
         self.map = initPack.map;
 
         self.draw = function () {
-            if (Player.list.find((player) => player.id === selfId).map !== self.map) return;
+            const player = Player.list.find((player) => player.id === selfId); 
 
-            const x = self.x - Player.list.find((player) => player.id === selfId).x + WIDTH / 2;
-            const y = self.y - Player.list.find((player) => player.id === selfId).y + HEIGHT / 2;
+            if (player.map !== self.map) return;
+
+            const x = self.x - player.x + WIDTH / 2;
+            const y = self.y - player.y + HEIGHT / 2;
 
             const hpWidth = 30 * self.hp / self.hpMax;
             ctx.fillStyle = 'red';
@@ -113,12 +115,13 @@
         self.map = initPack.map;
 
         self.draw = function () {
-            if (Player.list.find((player) => player.id === selfId).map !== self.map) return;
+            const player = Player.list.find((player) => player.id === selfId);
+            if (player.map !== self.map) return;
             const width = Img.bullet.width / 2;
             const height = Img.bullet.height / 2;
 
-            const x = self.x - Player.list.find((player) => player.id === selfId).x + WIDTH / 2;
-            const y = self.y - Player.list.find((player) => player.id === selfId).y + HEIGHT / 2;
+            const x = self.x - player.x + WIDTH / 2;
+            const y = self.y - player.y + HEIGHT / 2;
 
             ctx.drawImage(Img.bullet, 0, 0, Img.bullet.width, Img.bullet.height, x - width / 2, y - height / 2, width, height);  
         }
